@@ -33,22 +33,19 @@ except config.ConfigException:
         # trunk-ignore(ruff/B904)
         raise Exception("Could not configure Kubernetes Python client")
 
-SA_TOKEN_FILE = (
-    "/var/run/secrets/kubernetes.io/serviceaccount/token"
-)
+SA_TOKEN_FILE = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+
 
 def refresh_token(configuration):
-    # Projected ServiceAccount tokens are rotated by kubelet.
     with open(SA_TOKEN_FILE) as token_file:
-        token = token_file.read().strip()
-
-    configuration.api_key["BearerToken"] = token
+        configuration.api_key["BearerToken"] = token_file.read().strip()
 
 
 def make_api_client():
     configuration = client.Configuration.get_default_copy()
 
     if in_cluster:
+        configuration.api_key_prefix["BearerToken"] = "Bearer"
         refresh_token(configuration)
         configuration.refresh_api_key_hook = refresh_token
 
