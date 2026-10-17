@@ -3,6 +3,15 @@ entries:
   k8s-dummy-lb:
   - apiVersion: v1
     appVersion: 0.0.1
+    created: "2026-10-17T15:33:28.672967586Z"
+    description: A Helm chart for k8s dummy lb
+    digest: 7925274110c394b2dbb334749df5625035a6e90b0940f4a5e33daeb37d66d851
+    name: k8s-dummy-lb
+    urls:
+    - https://github.com/nefelim4ag/k8s-dummy-lb/releases/download/k8s-dummy-lb-0.0.4/k8s-dummy-lb-0.0.4.tgz
+    version: 0.0.4
+  - apiVersion: v1
+    appVersion: 0.0.1
     created: "2026-10-17T15:17:05.108729989Z"
     description: A Helm chart for k8s dummy lb
     digest: fbc4dd040e411842981d2f775518b3c6f346598f10a5c05fed2787e9ecba6372
@@ -28,4 +37,4 @@ entries:
     urls:
     - https://github.com/nefelim4ag/k8s-dummy-lb/releases/download/k8s-dummy-lb-0.0.1/k8s-dummy-lb-0.0.1.tgz
     version: 0.0.1
-generated: "2026-10-17T15:17:05.108738712Z"
+generated: "2026-10-17T15:33:28.672990919Z"
