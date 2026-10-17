@@ -33,38 +33,39 @@ except config.ConfigException:
         # trunk-ignore(ruff/B904)
         raise Exception("Could not configure Kubernetes Python client")
 
-SA_TOKEN_FILE = '/var/run/secrets/kubernetes.io/serviceaccount/token'
+SA_TOKEN_FILE = (
+    "/var/run/secrets/kubernetes.io/serviceaccount/token"
+)
 
 def refresh_token(configuration):
-    # projected tokens are rotated by kubelet
+    # Projected ServiceAccount tokens are rotated by kubelet.
     with open(SA_TOKEN_FILE) as token_file:
         token = token_file.read().strip()
 
-    configuration.api_key['authorization'] = token
-    configuration.api_key_prefix['authorization'] = 'Bearer'
+    configuration.api_key["BearerToken"] = token
 
 
 def make_api_client():
     configuration = client.Configuration.get_default_copy()
 
     if in_cluster:
-        # the first call is required, the hook only runs if a key already exists
         refresh_token(configuration)
         configuration.refresh_api_key_hook = refresh_token
 
-    context = ssl.create_default_context(cafile=configuration.ssl_ca_cert)
-    # Python 3.13+ enables VERIFY_X509_STRICT, which rejects CA certificates
-    # without an Authority Key Identifier (the EKS cluster CA has none).
-    # The chain is still fully verified.
+    context = ssl.create_default_context(
+        cafile=configuration.ssl_ca_cert
+    )
     context.verify_flags &= ~ssl.VERIFY_X509_STRICT
 
     if not configuration.verify_ssl:
-        # honour insecure-skip-tls-verify from kubeconfig
         context.check_hostname = False
         context.verify_mode = ssl.CERT_NONE
 
     if configuration.cert_file:
-        context.load_cert_chain(configuration.cert_file, configuration.key_file)
+        context.load_cert_chain(
+            configuration.cert_file,
+            configuration.key_file,
+        )
 
     api_client = client.ApiClient(configuration)
     api_client.rest_client.pool_manager = urllib3.PoolManager(
@@ -72,7 +73,6 @@ def make_api_client():
         maxsize=configuration.connection_pool_maxsize or 8,
     )
     return api_client
-
 
 api_client = make_api_client()
 # status patch must be sent as merge-patch, so the ingress list gets replaced
