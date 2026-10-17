@@ -6,8 +6,17 @@ image:
 
 replicas: 1
 
+## @param strategy [object] Strategy to use to update Pods
+## ref: https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#update-strategies
+##
+strategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxSurge: 5%
+    maxUnavailable: 10%
+
 env:
-  RECONCILE_INTERVAL "15"
+  RECONCILE_INTERVAL: "15"
   IPV6_CACHE_TTL: "300"
   DRY_RUN: "false"
   LB_CLASS: "controller.io/node-ip"
