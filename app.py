@@ -3,14 +3,11 @@ import os
 import re
 import ssl
 import time
-import boto3
 import logging
 import queue
 import threading
-import urllib3
 
 from collections import namedtuple
-from botocore.exceptions import BotoCoreError, ClientError
 from kubernetes import client, config, watch
 from kubernetes.client.rest import ApiException
 
@@ -42,6 +39,7 @@ def refresh_token(configuration):
 
 
 def make_api_client():
+    import urllib3
     configuration = client.Configuration.get_default_copy()
 
     if in_cluster:
@@ -256,6 +254,7 @@ class Ipv6Resolver:
 
     def get_ec2_client(self, region):
         if region not in self._ec2_clients:
+            import boto3
             self._ec2_clients[region] = boto3.client('ec2', region_name=region)
         return self._ec2_clients[region]
 
@@ -272,17 +271,23 @@ class Ipv6Resolver:
     def refresh(self, nodes):
         now = time.monotonic()
 
+        expired = [k for k, (exp, _) in self._cache.items() if exp <= now]
+        for k in expired:
+            del self._cache[k]
+
         missing = {}  # region -> [instance id, ...]
         for node in nodes:
             region, instance_id = self.get_aws_instance(node)
             if instance_id is None:
                 continue
 
-            cached = self._cache.get(instance_id)
-            if cached is not None and cached[0] > now:
+            if instance_id in self._cache:
                 continue
 
             missing.setdefault(region, []).append(instance_id)
+
+        if missing:
+            from botocore.exceptions import BotoCoreError, ClientError
 
         for region, instance_ids in missing.items():
             for instance_id in instance_ids:

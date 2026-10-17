@@ -22,6 +22,7 @@ spec:
       - image: {{ .Values.image.repository }}:{{ tpl (.Values.image.tag) $ }}
         imagePullPolicy: {{ .Values.image.pullPolicy }}
         name: k8s-dummy-lb
+        resources: {{ .Values.resources | toJson }}
         env:
         {{- with .Values.env }}
         {{- range $key, $value := . }}

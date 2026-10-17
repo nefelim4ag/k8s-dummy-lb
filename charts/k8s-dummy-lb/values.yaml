@@ -9,6 +9,11 @@ serviceAccount:
 
 replicas: 1
 
+resources:
+  requests:
+    cpu: 0.001
+    memory: 64Mi
+
 ## @param strategy [object] Strategy to use to update Pods
 ## ref: https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#update-strategies
 ##
@@ -20,7 +25,7 @@ strategy:
 
 env:
   RECONCILE_INTERVAL: "15"
-  IPV6_CACHE_TTL: "300"
+  IPV6_CACHE_TTL: "900"
   DRY_RUN: "false"
   LB_CLASS: "controller.io/node-ip"
   NODE_IPV6_SOURCE: auto  # auto | none
