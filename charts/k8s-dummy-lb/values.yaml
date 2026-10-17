@@ -1,0 +1,45 @@
+image:
+  repository: ghcr.io/nefelim4ag/k8s-dummy-lb
+  tag: "{{ .Chart.AppVersion }}"
+  pullPolicy: IfNotPresent
+  imagePullSecrets: []
+
+replicas: 1
+
+env:
+  RECONCILE_INTERVAL "15"
+  IPV6_CACHE_TTL: "300"
+  DRY_RUN: "false"
+  LB_CLASS: "controller.io/node-ip"
+  NODE_IPV6_SOURCE: auto  # auto | none
+  # NAMESPACE: <name>
+
+hostNetwork: false
+dnsConfig: {}
+
+topologySpreadConstraints:
+- maxSkew: 1
+  topologyKey: topology.kubernetes.io/zone
+  whenUnsatisfiable: ScheduleAnyway
+  labelSelector:
+    matchLabels:
+      app: "{{ .Release.Name }}"
+- maxSkew: 1
+  topologyKey: kubernetes.io/hostname
+  whenUnsatisfiable: ScheduleAnyway
+  labelSelector:
+    matchLabels:
+      app: "{{ .Release.Name }}"
+
+affinity:
+  nodeAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+    - weight: 1
+      preference:
+        matchExpressions:
+        - key: app
+          operator: In
+          values:
+          - "{{ .Release.Name }}"
+
+tolerations: []
