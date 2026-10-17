@@ -4,6 +4,9 @@ image:
   pullPolicy: IfNotPresent
   imagePullSecrets: []
 
+serviceAccount:
+  annotations: {}
+
 replicas: 1
 
 ## @param strategy [object] Strategy to use to update Pods
