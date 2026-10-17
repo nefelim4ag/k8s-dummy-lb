@@ -19,7 +19,7 @@ spec:
       serviceAccountName: {{ .Release.Name }}
       serviceAccount: {{ .Release.Name }}
       containers:
-      - image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+      - image: {{ .Values.image.repository }}:{{ tpl (.Values.image.tag) $ }}
         imagePullPolicy: {{ .Values.image.pullPolicy }}
         name: k8s-dummy-lb
         env:
