@@ -18,6 +18,8 @@ kind: Service
 metadata:
   name: contour-envoy
   namespace: contour
+# annotations:
+#   "controller.io/enable_ipv6": "true"
 status:
   loadBalancer:
     ingress: # Nodes' external IPs of Envoy/Contour nodes will be set there.

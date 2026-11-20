@@ -89,7 +89,8 @@ AWS_PROVIDER_ID = re.compile(r'^aws:///(?P<zone>[a-z0-9-]+)/(?P<instance_id>i-[0
 Event = namedtuple('Event', ['kind', 'type', 'obj'])
 
 NodeInfo = namedtuple('NodeInfo', ['name', 'ready', 'provider_id', 'external_ips'])
-ServiceInfo = namedtuple('ServiceInfo', ['namespace', 'name', 'ips'])
+ServiceInfo = namedtuple('ServiceInfo', ['namespace', 'name', 'ips', 'enable_ipv6'])
+FALSE_VALUES = ('false', '0')
 
 
 def ip_sort_key(ip):
@@ -192,9 +193,10 @@ class EndpointSlicesConsumer(Consumer):
 
 
 class ServiceConsumer(Consumer):
-    def __init__(self, lb_class):
+    def __init__(self, lb_class, annotation_prefix):
         super().__init__()
         self._lb_class = lb_class
+        self._ipv6_annotation = f"{annotation_prefix}/enable_ipv6"
 
     def iter_services(self):
         for service in self._state.values():
@@ -222,10 +224,15 @@ class ServiceConsumer(Consumer):
                 if ingress.ip:
                     ips.append(ingress.ip)
 
+        annotations = service.metadata.annotations or {}
+        annotation_value = annotations.get(self._ipv6_annotation, 'true').strip().lower()
+        enable_ipv6 = annotation_value not in FALSE_VALUES
+
         self._state[key] = ServiceInfo(
             service.metadata.namespace,
             service.metadata.name,
-            tuple(sorted(ips, key=ip_sort_key)))
+            tuple(sorted(ips, key=ip_sort_key)),
+            enable_ipv6)
 
 
 # ---------------------------------------------------------------------------
@@ -411,9 +418,14 @@ class Reconciler:
 
         return set()
 
-    def iter_node_ips(self, node):
+    def iter_node_ips(self, node, enable_ipv6 = True):
         for ip in node.external_ips:
+            if not enable_ipv6 and ":" in ip:
+                continue
             yield ip
+
+        if not enable_ipv6:
+            return
 
         for ip in self.ipv6.iter_ipv6(node):
             yield ip
@@ -442,11 +454,12 @@ class Reconciler:
         for node_name in sorted(node_names):
             selected_nodes.append(self.nodes.get_node(node_name))
 
-        self.ipv6.refresh(selected_nodes)
+        if service.enable_ipv6:
+            self.ipv6.refresh(selected_nodes)
 
         unique_ips = set()
         for node in selected_nodes:
-            for ip in self.iter_node_ips(node):
+            for ip in self.iter_node_ips(node, service.enable_ipv6):
                 unique_ips.add(ip)
 
         if not unique_ips:
@@ -478,13 +491,16 @@ def main():
     lb_class = os.getenv('LB_CLASS', 'controller.io/node-ip')
     namespace = os.getenv('NAMESPACE')
     ipv6_source = os.getenv('NODE_IPV6_SOURCE', 'auto')  # auto | none
+    annotation_prefix = lb_class.split('/')[0]
 
-    logging.info(f"Starting: class={lb_class} namespace={namespace or '<all>'} ipv6={ipv6_source} dry_run={DRY_RUN}")
+    logging.info(f"Starting: class={lb_class} namespace={namespace or '<all>'} "
+        f"annotation_prefix={annotation_prefix} "
+        f"ipv6={ipv6_source} dry_run={DRY_RUN}")
 
     events_bus = queue.Queue()
     consumers = {
         "nodes": NodesConsumer(),
-        "services": ServiceConsumer(lb_class),
+        "services": ServiceConsumer(lb_class, annotation_prefix),
         "endpointslices": EndpointSlicesConsumer(),
     }
     watchers = [
